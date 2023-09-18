@@ -1,6 +1,7 @@
 Q: Explain linux kernel version
 x.y.z
 Major.Minor.Patch_fixes
+key:"Major Number", "Minor number", "Patch number"
 --------------------------------------------------------------------------------------------
 Q: List Kernel source directories/organization
 
@@ -13,17 +14,20 @@ make -j4
 make modules
 make INSTALL_MOD_PATH=/where/to modules_install
 
+key: "distclean, defconfig, menuconfig, make zImage, make modules, modules_install"
 --------------------------------------------------------------------------------------------
 Q: How kernel is configured
-key:make menuconfig, make defconfig - arch/arm/configs folder, make oldoldconfig
+key:make menuconfig, make defconfig - arch/arm/configs folder, make oldconfig
 
 --------------------------------------------------------------------------------------------
 Q: what is xconfig
-xconfig is a QT tool - GUI for configuring the kernel
+xconfig is a "QT" tool - GUI for configuring the kernel
 gconfig is also there - based on GTK+
 
 --------------------------------------------------------------------------------------------
-Q: different types of kernel images : zImage, uImage, vmlinux etc
+Q: different types of kernel images : vmlinux,vmlinuz,zImage,bzImage,uImage etc
+
+keys: "compressed, un-compressed,u-boot, x86, header"
 
 - kernel Images are based on different types of "compression" used
 
@@ -59,8 +63,16 @@ the OS type and loader information
 
 --------------------------------------------------------------------------------------------
 Q: How in-tree modules are compiled - and installed
-make modules, will build the in-tree modules
-make INSTALL_MOD_PATH=/where/to modules_install
+
+- make modules, will build the in-tree modules - which are marked as "m", where as "y" will
+be part of kernel .o files combined into kernel ELF bin - the one with "y" will not 
+be a module -but part of the kernel - and the module is Automatically loaded if marked "y"
+
+- Only "m" marking will make it as a module - which becomes a loadable kernel module - and
+we need to load it manually via insmod/modprobe, or auto my adding in etc/modeconf OR it can
+be loaded by hotplug - via udev
+
+- make INSTALL_MOD_PATH=/where/to modules_install
 
 - the modules_install will place the modules in /lib/modules/kernel-version/drivers
 - and we need to copy the modules to traget
@@ -99,7 +111,7 @@ other memory areas
 --------------------------------------------------------------------------------------------
 Q: Explain "depmod" utility - when it is invoked - and module dependency
 
-make modules - will compile the in-tree modules
+make modules - will compile the in-tree modules - marked as "m"
 make modules_install - will install the compiled modules in /lib/modules/kernel-ver/drivers
 - and in a sub step - "depmod" will be run - which will walk through all the modules
 in /lib/modules/kernel-ver and generate "modules.dep" and "modules.dep.bin" file - which has
@@ -120,8 +132,10 @@ and then loads our module
 Q: How modules are inserted - explain both insmod and modprobe
 
 insmod module_hello.ko
+		OR
+modprobe module_hello 
 
-modprobe meodule_hello ---> Notice here we must not give .ko, as modprobe scan the
+---> Notice here we must not give .ko, as modprobe scan the
 modules.dep.bin file to find the dependent modules first and the load our module
 
 - Also module can be removed using :
@@ -153,8 +167,12 @@ module usage
 --------------------------------------------------------------------------------------------
 Q: Can all types of modules be unloaded
 
-- yes we can unload the modules - both in-tree and out-of-tree modules can be unloded
+- yes we can unload the modules - both in-tree("m") and out-of-tree("m") modules can be 
+unloded
 - we need to enable it in kernel config, also force remove need to be enabled
+
+- Note : marking it as "y" - is not a module - its Automatically loaded at boot time
+and we cannot remove it
 --------------------------------------------------------------------------------------------
 Q: How to list the modules installed / loaded
 
@@ -185,48 +203,181 @@ Q: Explain __init, __exit and __init_data
 
 - Once the module is loaded, the memory space occupied by the init() function can be
 claimed, either code in section ".init.text"
->> This applies only for built-in drivers and not for loadable modules (in-tree) as well
+>> This applies only for built-in('Y') drivers and not for loadable modules('m')-inTree and
+out-of-tree - either its not applicable to modules 
 - As the section details are part of the final kernel ELF file
 
-- for __exit - in case of built-in modules - the code is omitted - as it ca not be
+- for __exit - in case of built-in('Y') modules - the code is omitted - as it ca not be
 unloaded at runtime
-
 
 --------------------------------------------------------------------------------------------
 Q: How __init and __exit matters for in-built and LKMs
 
+- functions marked as __init - will be placed in .init.text section
+- And when the module is loaded - the code placed in that ".init.text" section can be claimed
+- this can be done - when the code is part of kernel image, with are nothing but driver code
+marked as "y" - and registered with module_init()
+
+- And if __exit is marked, the code is ommited - if the function is part of driver marked "y"
+
+- Only in case of driver code - marked as 'y' - this feature is useful - else not
+- If its in-tree or out-of-tree module - then it will be marked as 'm' - and __init has no
+used - since it not part of kernel ELF - and also __exit is of no use
+ 
 --------------------------------------------------------------------------------------------
 Q: Explain MODULE_XXXX macros - license, Author, Desc
 
+MODULE_AUTHOR(), MODULE_LICENSE("GPL") - GPL2 - open-source GPL license
 --------------------------------------------------------------------------------------------
 Q: Explain how EXPORT_SYMBOL() and GPL works
+- The symbols - which can be variables/functionsl, can be made to be exported to rest of the
+kernel - by a symbol table - and can be found in /proc/kallsys
+
+- EXPORT_SYMBOL_GPL() - the symbols exported by this - will only be visible to
+module which are unser GPL license
 
 --------------------------------------------------------------------------------------------
 Q: How Error handling is done in kernel - NULL Pointer Errors
 
+void *ERR_PTR(long error); - ERROR code to Pointer
+long IS_ERR(const void *ptr); - Check if the pointer is ERROR or not
+long PTR_ERR(const void *ptr); - Convert Pointer to ERROR code
+
+--------------------------------------------------------------------------------------------
+Q: Explain likely() and unlikely()
+# define likely(x)	__builtin_expect(!!(x), 1)
+# define unlikely(x)	__builtin_expect(!!(x), 0)
+
 --------------------------------------------------------------------------------------------
 Q: Can printk() be called from ISR - how does printk() work
 
+- Yes prink() can be called from ISR - it will not be blocked
+- printk() locks the serial console when priting - if unable to lock, then will write to
+buffer - hence can be used in atomic contexts
+- But printk() printsm are dependent on the Kenel Log Level
+
+echo <level> > /proc/sys/kernel/printk
+>> Log level can be changed
 --------------------------------------------------------------------------------------------
 Q: How can be pass arguments to module
 
+- First we need to define the module - and then use module_param()
+module_param(name, type, perm);
+
+module_param(myint, int, S_IRUGO);
+module_param(mystr, charp, S_IRUGO);
+module_param_array(myarr, int,NULL, S_IWUSR|S_IRUSR);
+
+- Args can be passed using:
+insmod hellomodule-params.ko mystring="packtpub" myint=15 myArray=1,2,3
 --------------------------------------------------------------------------------------------
 Q: How can we change the variable values at runtime of the kernel module
 
+- This can be done, by having a callback function registered via : "module_param_cb()"
+- We need to define the set() and get() functions
+- It will be exposed in : /sys/module/hello_world_module/parameters/valueETX
 --------------------------------------------------------------------------------------------
 Q: How are kernel modules built, in-tree and out-of-tree compilation steps
+
+- In-the-Kernel-Tree
+- Two files will need modification : Makefile and Kconfig
+
+kconfig:
+config MY_DRIVER_CODE
+	tristate "Info"
+	default m
+	help
+		Say Y for compiling part of the kernel image
+		Say m for compiling it as a kernel module - which is compiled as LKM - make modules
+
+Makefile:
+obj-$(CONFIG_MY_DRIVER_CODE)	+= mychardriver.o
+
+- We can set the CONFIG_MY_DRIVER_CODE to "m,n,y" either from menuconfig or directly in
+defconfig file placed in arch/arm/configs/
+
+CONFIG_MY_DRIVER_CODE=m
+CONFIG_MY_DRIVER_CODE=y
+
+---------------
+- Out of tree compile:
+
+obj-m := helloworld.o
+KERNELDIR ?= /lib/modules/$(shell uname -r)/build
+all default: modules
+install: modules_install
+modules modules_install help clean:
+$(MAKE) -C $(KERNELDIR) M=$(shell pwd) $@
+
+- At minimum we will need kernel headers
 --------------------------------------------------------------------------------------------
 
 Q: Explain container_of() Macro
 
+- container_of(pointer, big_structure_type, name_of_member)
+
+struct car
+{
+	int number;
+	int model;
+	struct list_head car_list;
+};
+
+- Using any of the member address - we can get to the big/man structure address
+
+struct car baleno;
+
+struct car *my_car = container_of(&baleno.model, struct car, model);
+(&baleno.model) - offset_of(struct car, model)
+
+>> Here the model is at offset of 4-bytes, so addr-4 will get us to top the structure
+
 --------------------------------------------------------------------------------------------
 Q: How are linked list implemented in the kernel - what are the APIs
 
+struct list_head
+{
+	struct list_head *next;
+	struct list_head *prev;
+};
+
+STATIC_Creation:
+static LIST_HEAD(my_head);
+
+DYNAMIC:
+struct list_head *my_head = (struct list_head *)kmalloc(sizeof(struct list_head), GFP_KERNEL);
+INIT_LIST_HEAD(my_head);
+
+struct car
+{
+	int number;
+	int model;
+	struct list_head car_list;
+};
+
+struct car *my_car = (struct car*)kmalloc(sizeof(struct car), GFP_KERNEL);
+INIT_LIST_HEAD(&my_car->car_list);
+
+list_add(&my_car->car_list, my_head);
+list_add(&his_car->car_list, my_head);
+
+list_add_tail(&my_car->car_list, my_head);
+
+list_del(&my_car->car_list, my_head);
 --------------------------------------------------------------------------------------------
 Q: Write a module - creating a linked list - and Also traverse the list
 
+list_for_each_entry(pointer_to_big_struct, HEAD, member_name_of_list_in_big);
+
+list_for_each_entry(tmp_car, my_head, car_list)
+{
+	model = tmp_car->model;
+}
+
 --------------------------------------------------------------------------------------------
-Q: Explain how can be use Wait Queues - write a simple module
+Q: Explain how can we use Wait Queues - write a simple module
+
+- Note we do not create "Wait Queues" ourselves
 
 --------------------------------------------------------------------------------------------
 Q: Which are 2 catagories of Time in kernel - and Explain
