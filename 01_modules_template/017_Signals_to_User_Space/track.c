@@ -103,6 +103,36 @@ static int etx_release(struct inode *inode, struct file *file)
 }
 
 ##########################################################################################
+
+/* used to create numbers */
+#define _IO(type,nr)    _IOC(_IOC_NONE,(type),(nr),0)
+#define _IOR(type,nr,size)  _IOC(_IOC_READ,(type),(nr),sizeof(size))
+#define _IOW(type,nr,size)  _IOC(_IOC_WRITE,(type),(nr),sizeof(size))
+#define _IOWR(type,nr,size) _IOC(_IOC_READ|_IOC_WRITE,(type),(nr),sizeof(size))
+
+
+#define VIDIOC_QUERYCAP    _IOR('V',  0, struct v4l2_capability)
+#define VIDIOC_ENUM_FMT         _IOWR('V',  2, struct v4l2_fmtdesc)
+#define VIDIOC_G_FMT    _IOWR('V',  4, struct v4l2_format)
+#define VIDIOC_S_FMT    _IOWR('V',  5, struct v4l2_format)
+#define VIDIOC_REQBUFS    _IOWR('V',  8, struct v4l2_requestbuffers)
+#define VIDIOC_QUERYBUF   _IOWR('V',  9, struct v4l2_buffer)
+
+
+In the Linux kernel, when defining new ioctl commands, the `_IOR()` macro is often used to specify input/output ioctls. Let's break down the parameters of the `_IOR()` macro:
+
+1. **type**: This parameter represents the type of the ioctl command. It's typically a unique identifier or a number that identifies a specific device or driver. It helps in categorizing and distinguishing different ioctl commands. The type parameter should be defined consistently across the ioctl interface to ensure proper communication between user-space and kernel-space code.
+
+2. **nr**: This parameter specifies the number or identifier of the ioctl command within the given type. It uniquely identifies the particular ioctl command within the specified type. Each ioctl command should have a unique number or identifier within its type.
+
+3. **size**: This parameter indicates the size of the data associated with the ioctl command. It specifies the size of the data buffer used for input or output operations. The size parameter helps in ensuring that the proper amount of memory is allocated for transferring data between user-space and kernel-space code.
+
+The `_IOR()` macro is actually a combination of the `_IOC()` macro and the `_IOC_READ` flag. The `_IOC()` macro is a general macro used for constructing ioctl commands, and `_IOC_READ` is a flag indicating that the ioctl command involves reading data from the device.
+
+Putting it all together, `_IOR()` constructs an ioctl command that indicates an input/output operation, specifying the type, number, and size of the ioctl command. This macro helps in defining ioctl commands in a consistent and readable manner within the Linux kernel codebase.
+
+##########################################################################################
+
 /***************************************************************************//**
 *  \file       driver.c
 *
