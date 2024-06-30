@@ -697,6 +697,7 @@ struct v4l2_buffer {
   streamParams.parm.capture.capability = V4L2_CAP_TIMEPERFRAME;
   //streamParams.parm.capture.capturemode = V4L2_MODE_HIGHQUALITY;
   streamParams.parm.capture.timeperframe.denominator = fps;
+	printf("TYRING FPS : %d ------\n", fps);
   streamParams.parm.capture.timeperframe.numerator= 1;
   ret = ioctl(fd, VIDIOC_S_PARM, &streamParams);
   if (ret < 0) {

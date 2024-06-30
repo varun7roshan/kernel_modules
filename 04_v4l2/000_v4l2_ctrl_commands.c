@@ -317,8 +317,31 @@ v4l2-ctl --set-ctrl video_bitrate=10000000
 
 
 ##########################################################################################
+[Quick Capture]
+
+v4l2-ctl --list-devices
+>> Get the video devices listed
+
+v4l2-ctl -V
+>> Check the current settings applied
+
+v4l2-ctl --stream-mmap=3 --stream-count=1 --stream-to=somefile.jpg
+>> if "1" count does not capture the image correctly, then do it 3 - on the same image
+>> The 3 images captured will be appended - so if we save it in .mp4 - we can play it
+
+[To view the images]
+display test.jpg
+display test.mp4
+
+ffplay test.jpg
+ffplay test.mp4
 
 
+Note : IF USING YUV/NV12 - CHCEK THE RESOLUTION when playing
+ffplay -f rawvideo -pixel_format nv12 -s 640x480 -i cap_video_NV12_640_480.yuv
+
+[framerate - fps changing]
+ffplay  -f rawvideo -pixel_format nv12 -video_size 1920x1080 -framerate 1 -i cap_30_18_19_56_NV12_1920x1080_5fps_default.yuv
 ##########################################################################################
 
 
